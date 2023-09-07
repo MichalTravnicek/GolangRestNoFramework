@@ -1,8 +1,6 @@
-// package models
+package models
 
-// import "dencodes.id/basic-rest/models"
-
-// type JsonResponse struct {
-// 	Message string           `json:"message"`
-// 	Data    []models.Product `json:"data"`
-// }
+type JsonResponse struct {
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}

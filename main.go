@@ -5,24 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	"github.com/raymondddenny/golang-rest-no-framework/models"
 )
-
-type JsonResponse struct {
-	Message string    `json:"message"`
-	Data    []Product `json:"datas"`
-	// Data    Product   `json:"data"`
-}
-
-type Product struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	Price    float64 `json:"price"`
-	Quantity int     `json:"quantity"`
-}
 
 // temp db
 var (
-	database = make(map[string]Product)
+	database = make(map[string]models.Product)
 )
 
 func setJsonResp(message []byte, httpCode int, res http.ResponseWriter) {
@@ -41,7 +30,7 @@ func products(res http.ResponseWriter, req *http.Request) {
 	// }
 
 	if req.Method == "GET" {
-		var products []Product
+		var products []models.Product
 
 		// loop through db
 		for _, product := range database {
@@ -49,7 +38,7 @@ func products(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// Create a JSON response struct
-		response := JsonResponse{
+		response := models.JsonResponse{
 			Message: "Get All Product Success",
 			Data:    products,
 		}
@@ -77,7 +66,7 @@ func products(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "POST" {
 
-		var product Product
+		var product models.Product
 
 		payload := req.Body
 
@@ -128,7 +117,7 @@ func productById(res http.ResponseWriter, req *http.Request) {
 	id := req.URL.Query().Get("id")
 
 	// product, boolean
-	product, ok := database[id]
+	productData, ok := database[id]
 
 	if !ok {
 		message := []byte(`{"message": "Product not found"}`)
@@ -151,7 +140,7 @@ func productById(res http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
 
 		// UPDATE PRODUCT
-		var updatedProduct Product
+		var updatedProduct models.Product
 
 		// add product
 
@@ -173,9 +162,9 @@ func productById(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// Create a JSON response struct
-	response := JsonResponse{
+	response := models.JsonResponse{
 		Message: "Get Product Success",
-		Data:    []Product{product},
+		Data:    []models.Product{productData},
 	}
 
 	// message := []byte(`{"message": "Success"}`)
@@ -193,8 +182,8 @@ func productById(res http.ResponseWriter, req *http.Request) {
 func main() {
 
 	// init db
-	database["001"] = Product{ID: "001", Name: "Pisang Goreng", Price: 10.99, Quantity: 10}
-	database["002"] = Product{ID: "002", Name: "Teh Botol", Price: 5.99, Quantity: 20}
+	database["001"] = models.Product{ID: "001", Name: "Pisang Goreng", Price: 10.99, Quantity: 10}
+	database["002"] = models.Product{ID: "002", Name: "Teh Botol", Price: 5.99, Quantity: 20}
 
 	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		message := []byte(`{"message": "Server up and running"}`)
