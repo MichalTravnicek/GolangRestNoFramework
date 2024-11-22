@@ -6,12 +6,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/raymondddenny/golang-rest-no-framework/models"
 )
 
 // temp db
 var (
+	quit = make (chan bool)
 	database = make(map[string]models.Product)
 )
 
@@ -176,10 +178,30 @@ func main() {
 	http.HandleFunc("/products", products)
 	http.HandleFunc("/product", productById)
 
-	err := http.ListenAndServe(":8080", nil)
+	go func() {
+		err := http.ListenAndServe(":8080", nil)
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		log.Println("Server started")
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}()
+	
+	func() {
+		for {
+			select {
+			case <- quit:
+				log.Println("Quitting")
+				return
+			default:
+				log.Println("Sleeping")
+				time.Sleep(100 * time.Millisecond)
+				// Do other stuff
+			}
+		}
+	}()
+
+	time.Sleep(1000 * time.Millisecond)
 }
