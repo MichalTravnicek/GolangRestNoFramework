@@ -2,11 +2,12 @@ package main
 
 import (
     "testing"
+    "github.com/stretchr/testify/assert"
     "net/http"
     // "io"
     "encoding/json"
     // "fmt"
-    "time"
+    // "time"
     "log"
 
     "github.com/raymondddenny/golang-rest-no-framework/models"
@@ -18,24 +19,26 @@ func TestHelloName(t *testing.T) {
 	log.Println("Hello test")
 }
 
-// TestHelloEmpty calls greetings.Hello with an empty string,
-// checking for an error.
-func TestHelloEmpty(t *testing.T) {
+func TestResponse(t *testing.T) {
     go main()
-    time.Sleep(1000 * time.Millisecond)
+    // time.Sleep(100 * time.Millisecond)
     log.Println("Test http")
     // request, err := http.NewRequest("GET","https://cuddly-dollop-q795vjjq769v249px-8080.app.github.dev/products", nil)
-    request, err := http.NewRequest("GET","http://localhost:8080/product/001", nil)
+    request, err := http.NewRequest("GET","http://localhost:8080/products/002", nil)
     res, err := http.DefaultClient.Do(request)
     log.Println("Response", res.Status)
     // resBody, err := io.ReadAll(res.Body)
     // log.Println(len(resBody))
-    var product models.Product
+    var response models.JsonResponse
     // json.Unmarshal(resBody, &product)
-    json.NewDecoder(res.Body).Decode(&product)
+    defer res.Body.Close()
+    json.NewDecoder(res.Body).Decode(&response)
+    // product.Name = "name"
     //bodyReader := bytes.NewReader(resBody)
-    log.Println("Product", product)
+    log.Println("Response:", response.Message)
+    log.Println("Product:", response.Data)
     log.Println("response", res)
     log.Println("Error", err)
     quit <- true
+    assert.Equal(t,response.Message,"Get Product Success","should be equal")
 }

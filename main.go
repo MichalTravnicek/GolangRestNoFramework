@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/raymondddenny/golang-rest-no-framework/models"
@@ -13,7 +14,7 @@ import (
 
 // temp db
 var (
-	quit = make (chan bool)
+	quit     = make(chan bool)
 	database = make(map[string]models.Product)
 )
 
@@ -91,14 +92,18 @@ func productById(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// using inline if
-	if _, ok := req.URL.Query()["id"]; !ok {
-		message := []byte(`{"message": "Please provide id"}`)
-		setJsonResp(message, http.StatusBadRequest, res)
-		return
-	}
+	// // using inline if
+	// if _, ok := req.URL.Query()["id"]; !ok {
+	// 	message := []byte(`{"message": "Please provide id"}`)
+	// 	setJsonResp(message, http.StatusBadRequest, res)
+	// 	return
+	// }
 
-	id := req.URL.Query().Get("id")
+	// id := req.URL.Query().Get("id")
+
+	id := strings.TrimPrefix(req.URL.Path, "/products/")
+
+	log.Println("Requested product:", id)
 
 	// product, boolean
 	productData, ok := database[id]
@@ -169,26 +174,26 @@ func main() {
 	database["001"] = models.Product{ID: "001", Name: "Pisang Goreng", Price: 10.99, Quantity: 10}
 	database["002"] = models.Product{ID: "002", Name: "Teh Botol", Price: 5.99, Quantity: 20}
 
-	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		message := []byte(`{"message": "Server up and running"}`)
-		setJsonResp(message, http.StatusOK, res)
+	// http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+	// 	message := []byte(`{"message": "Server up and running"}`)
+	// 	setJsonResp(message, http.StatusOK, res)
 
-	})
+	// })
 
 	http.HandleFunc("/products", products)
-	http.HandleFunc("/product", productById)
+	http.HandleFunc("/products/", productById)
 
 	go func() {
-		err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
 
-		log.Println("Server started")
+	log.Println("Server started")
 
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 	}()
-	
+
 	func() {
 		for {
 			select {
@@ -203,5 +208,5 @@ func main() {
 		}
 	}()
 
-	time.Sleep(1000 * time.Millisecond)
+	//time.Sleep(1000 * time.Millisecond)
 }
