@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -20,14 +21,13 @@ func setJsonResp(message []byte, httpCode int, res http.ResponseWriter) {
 	res.Write(message)
 }
 
+func unmarshallingError(res http.ResponseWriter) {
+	message := []byte(`{"message": "Error unmarshalling data"}`)
+	setJsonResp(message, http.StatusBadRequest, res)
+}
+
 func products(res http.ResponseWriter, req *http.Request) {
 	// check http method GET
-
-	// if req.Method != "GET" {
-	// 	message := []byte(`{"message": "Invalid HTTP Method"}`)
-	// 	setJsonResp(message, http.StatusMethodNotAllowed, res)
-	// 	return
-	// }
 
 	if req.Method == "GET" {
 		var products []models.Product
@@ -43,7 +43,6 @@ func products(res http.ResponseWriter, req *http.Request) {
 			Data:    products,
 		}
 
-		// message := []byte(`{"message": "Success"}`)
 		productJson, err := json.Marshal(response)
 
 		if err != nil {
@@ -53,13 +52,6 @@ func products(res http.ResponseWriter, req *http.Request) {
 		}
 
 		// set response
-
-		if err != nil {
-			message := []byte(`{"message": "Error marshalling data"}`)
-			setJsonResp(message, http.StatusInternalServerError, res)
-			return
-		}
-
 		setJsonResp(productJson, http.StatusOK, res)
 		return
 	}
@@ -75,8 +67,7 @@ func products(res http.ResponseWriter, req *http.Request) {
 		err := json.NewDecoder(payload).Decode(&product)
 
 		if err != nil {
-			message := []byte(`{"message": "Error unmarshalling data"}`)
-			setJsonResp(message, http.StatusInternalServerError, res)
+			unmarshallingError(res)
 			return
 		}
 
@@ -97,15 +88,6 @@ func productById(res http.ResponseWriter, req *http.Request) {
 		setJsonResp(message, http.StatusMethodNotAllowed, res)
 		return
 	}
-
-	// handle if the user does not provide id
-	// id := req.URL.Query().Get("id")
-
-	// if id == "" {
-	// 	message := []byte(`{"message": "Please provide id"}`)
-	// 	setJsonResp(message, http.StatusBadRequest, res)
-	// 	return
-	// }
 
 	// using inline if
 	if _, ok := req.URL.Query()["id"]; !ok {
@@ -167,12 +149,10 @@ func productById(res http.ResponseWriter, req *http.Request) {
 		Data:    []models.Product{productData},
 	}
 
-	// message := []byte(`{"message": "Success"}`)
 	productJson, err := json.Marshal(response)
 
 	if err != nil {
-		message := []byte(`{"message": "Error marshalling data"}`)
-		setJsonResp(message, http.StatusInternalServerError, res)
+		unmarshallingError(res)
 		return
 	}
 	setJsonResp(productJson, http.StatusOK, res)
@@ -180,6 +160,8 @@ func productById(res http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+
+	log.Println("Application started")
 
 	// init db
 	database["001"] = models.Product{ID: "001", Name: "Pisang Goreng", Price: 10.99, Quantity: 10}
