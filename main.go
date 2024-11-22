@@ -196,7 +196,7 @@ func main() {
 				log.Println("Quitting")
 				return
 			default:
-				log.Println("Sleeping")
+				// log.Println("Sleeping")
 				time.Sleep(100 * time.Millisecond)
 				// Do other stuff
 			}
