@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
 	"golang-rest-no-framework/models"
 )
 
@@ -166,7 +169,30 @@ func productById(res http.ResponseWriter, req *http.Request) {
 
 }
 
+var user string
+var password string
+var db string
+var host string
+var port string
+var ssl string
+
+func init() {
+	user = os.Getenv("POSTGRES_USER")
+	password = os.Getenv("POSTGRES_PASSWORD")
+	db = os.Getenv("POSTGRES_DB")
+	host = os.Getenv("POSTGRES_HOST")
+	port = os.Getenv("POSTGRES_PORT")
+	ssl = os.Getenv("POSTGRES_SSL")
+}
+
 func main() {
+	// dsn := "host=db user=postgres password=password dbname=postgres port=5432 sslmode=disable"
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, db, port, ssl)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	log.Println("Connection:")
+	log.Println(db.DB())
+	log.Println("Errors:", err)
 
 	log.Println("Application started")
 
@@ -184,20 +210,20 @@ func main() {
 	http.HandleFunc("/products/", productById)
 
 	go func() {
-	err := http.ListenAndServe(":8080", nil)
+		err := http.ListenAndServe(":8080", nil)
 
-	log.Println("Server started")
+		log.Println("Server started")
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}()
 
 	func() {
 		for {
 			select {
-			case <- quit:
+			case <-quit:
 				log.Println("Quitting")
 				return
 			default:

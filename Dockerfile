@@ -10,10 +10,11 @@ RUN go mod download
 # Copy the source code. Note the slash at the end, as explained in
 # https://docs.docker.com/reference/dockerfile/#copy
 COPY *.go ./
+COPY wait-for-it.sh ./
 COPY /models ./models
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /GolangRestNoFramework
+RUN CGO_ENABLED=0 GOOS=linux go build -o /golang-rest-no-framework
 
 # Optional:
 # To bind to a TCP port, runtime parameters must be supplied to the docker command.
@@ -23,4 +24,4 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /GolangRestNoFramework
 EXPOSE 8080
 
 # Run
-CMD ["/GolangRestNoFramework"]
+CMD ["/golang-rest-no-framework"]
