@@ -10,7 +10,7 @@ import (
     // "time"
     "log"
 
-    "github.com/raymondddenny/golang-rest-no-framework/models"
+    "golang-rest-no-framework/models"
 )
 
 // TestHelloName calls greetings.Hello with a name, checking

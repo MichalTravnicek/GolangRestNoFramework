@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/raymondddenny/golang-rest-no-framework/models"
+	"golang-rest-no-framework/models"
 )
 
 // temp db
