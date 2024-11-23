@@ -1,0 +1,7 @@
+go run main.go
+go test
+docker build --tag docker-golang-rest .
+docker build -t docker-golang-rest:multistage -f Dockerfile.multistage .
+docker run --publish 8080:8080 docker-golang-rest
+docker run --publish 8080:8080 docker-golang-rest:multistage
+docker run -d -p 8080:8080 docker-golang-rest:multistage
