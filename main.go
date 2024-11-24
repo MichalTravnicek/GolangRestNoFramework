@@ -6,13 +6,20 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
-	"github.com/raymondddenny/golang-rest-no-framework/models"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	"golang-rest-no-framework/models"
 )
 
 // temp db
 var (
+	quit     = make(chan bool)
 	database = make(map[string]models.Product)
+	dbHandle *gorm.DB
 )
 
 func setJsonResp(message []byte, httpCode int, res http.ResponseWriter) {
@@ -31,6 +38,12 @@ func products(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "GET" {
 		var products []models.Product
+		// var dbProducts	
+		// dbHandle.Get([]Product])
+		var productsDb []Product
+		dbHandle.Find(&productsDb)
+
+		log.Println(productsDb)
 
 		// loop through db
 		for _, product := range database {
@@ -74,6 +87,21 @@ func products(res http.ResponseWriter, req *http.Request) {
 		// add product to db
 		database[product.ID] = product
 
+		dbProduct := mapToORM(product)
+
+		// result = dbHandle.First(dbProduct)
+
+		log.Printf("%+v\n",dbProduct)
+		// with Assign the entity is always updated
+		result := dbHandle.Where(Product{Name: dbProduct.Name}).Assign(Product{Name: dbProduct.Name,IDs: dbProduct.IDs}).FirstOrCreate(&dbProduct)
+
+		if (result!= nil){
+			log.Println("Product already exists")
+		}
+
+		
+		log.Printf("%+v\n",product)
+
 		message := []byte(`{"message": "Add new product success"}`)
 
 		setJsonResp(message, http.StatusCreated, res)
@@ -89,14 +117,18 @@ func productById(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// using inline if
-	if _, ok := req.URL.Query()["id"]; !ok {
-		message := []byte(`{"message": "Please provide id"}`)
-		setJsonResp(message, http.StatusBadRequest, res)
-		return
-	}
+	// // using inline if
+	// if _, ok := req.URL.Query()["id"]; !ok {
+	// 	message := []byte(`{"message": "Please provide id"}`)
+	// 	setJsonResp(message, http.StatusBadRequest, res)
+	// 	return
+	// }
 
-	id := req.URL.Query().Get("id")
+	// id := req.URL.Query().Get("id")
+
+	id := strings.TrimPrefix(req.URL.Path, "/products/")
+
+	log.Println("Requested product:", id)
 
 	// product, boolean
 	productData, ok := database[id]
@@ -159,7 +191,60 @@ func productById(res http.ResponseWriter, req *http.Request) {
 
 }
 
+var user string
+var password string
+var db string
+var host string
+var port string
+var ssl string
+
+func init() {
+	user = os.Getenv("POSTGRES_USER")
+	password = os.Getenv("POSTGRES_PASSWORD")
+	db = os.Getenv("POSTGRES_DB")
+	host = os.Getenv("POSTGRES_HOST")
+	port = os.Getenv("POSTGRES_PORT")
+	ssl = os.Getenv("POSTGRES_SSL")
+	dbHandle = initDb()
+}
+
+func initDb() *gorm.DB{
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, db, port, ssl)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if (err != nil){
+		log.Println("Database init error:", err)
+	}
+	return db
+}
+
+type Product struct {
+	gorm.Model
+	IDs string
+	Name  string
+	Price float64
+	Quantity uint
+}
+
+func mapToORM(prod models.Product) Product {
+	product := Product{IDs: prod.ID, Name: prod.Name, Price: prod.Price,Quantity: uint(prod.Quantity)}
+	return product
+}
+  
+
 func main() {
+	// dsn := "host=db user=postgres password=password dbname=postgres port=5432 sslmode=disable"
+
+	// dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, db, port, ssl)
+	// db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	
+	// // dbHandle := db
+	// log.Println("Connection:")
+	// //sqlDb,error = db.DB()
+	// log.Println(db.DB())
+	// log.Println("Errors:", err)
+
+	// db.AutoMigrate(Product{})
+
 
 	log.Println("Application started")
 
@@ -167,19 +252,44 @@ func main() {
 	database["001"] = models.Product{ID: "001", Name: "Pisang Goreng", Price: 10.99, Quantity: 10}
 	database["002"] = models.Product{ID: "002", Name: "Teh Botol", Price: 5.99, Quantity: 20}
 
-	http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		message := []byte(`{"message": "Server up and running"}`)
-		setJsonResp(message, http.StatusOK, res)
+	// product := mapToORM(database["002"])
+	// db.Create(mapToORM(database["001"]))
+	// db.Create(&product)
+	// db.Commit()
+	//return
+	// http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
+	// 	message := []byte(`{"message": "Server up and running"}`)
+	// 	setJsonResp(message, http.StatusOK, res)
 
-	})
+	// })
 
 	http.HandleFunc("/products", products)
-	http.HandleFunc("/product", productById)
+	http.HandleFunc("/products/", productById)
 
-	err := http.ListenAndServe(":8080", nil)
+	go func() {
+		err := http.ListenAndServe(":8080", nil)
 
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+		log.Println("Server started")
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}()
+
+	func() {
+		for {
+			select {
+			case <-quit:
+				log.Println("Quitting")
+				return
+			default:
+				// log.Println("Sleeping")
+				time.Sleep(100 * time.Millisecond)
+				// Do other stuff
+			}
+		}
+	}()
+
+	//time.Sleep(1000 * time.Millisecond)
 }
