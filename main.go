@@ -19,6 +19,7 @@ import (
 var (
 	quit     = make(chan bool)
 	database = make(map[string]models.Product)
+	dbHandle *gorm.DB
 )
 
 func setJsonResp(message []byte, httpCode int, res http.ResponseWriter) {
@@ -37,6 +38,12 @@ func products(res http.ResponseWriter, req *http.Request) {
 
 	if req.Method == "GET" {
 		var products []models.Product
+		// var dbProducts	
+		// dbHandle.Get([]Product])
+		var productsDb []Product
+		dbHandle.Find(&productsDb)
+
+		log.Println(productsDb)
 
 		// loop through db
 		for _, product := range database {
@@ -79,6 +86,21 @@ func products(res http.ResponseWriter, req *http.Request) {
 
 		// add product to db
 		database[product.ID] = product
+
+		dbProduct := mapToORM(product)
+
+		// result = dbHandle.First(dbProduct)
+
+		log.Printf("%+v\n",dbProduct)
+		// with Assign the entity is always updated
+		result := dbHandle.Where(Product{Name: dbProduct.Name}).Assign(Product{Name: dbProduct.Name,IDs: dbProduct.IDs}).FirstOrCreate(&dbProduct)
+
+		if (result!= nil){
+			log.Println("Product already exists")
+		}
+
+		
+		log.Printf("%+v\n",product)
 
 		message := []byte(`{"message": "Add new product success"}`)
 
@@ -183,16 +205,46 @@ func init() {
 	host = os.Getenv("POSTGRES_HOST")
 	port = os.Getenv("POSTGRES_PORT")
 	ssl = os.Getenv("POSTGRES_SSL")
+	dbHandle = initDb()
 }
+
+func initDb() *gorm.DB{
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, db, port, ssl)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if (err != nil){
+		log.Println("Database init error:", err)
+	}
+	return db
+}
+
+type Product struct {
+	gorm.Model
+	IDs string
+	Name  string
+	Price float64
+	Quantity uint
+}
+
+func mapToORM(prod models.Product) Product {
+	product := Product{IDs: prod.ID, Name: prod.Name, Price: prod.Price,Quantity: uint(prod.Quantity)}
+	return product
+}
+  
 
 func main() {
 	// dsn := "host=db user=postgres password=password dbname=postgres port=5432 sslmode=disable"
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, db, port, ssl)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
-	log.Println("Connection:")
-	log.Println(db.DB())
-	log.Println("Errors:", err)
+	// dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, db, port, ssl)
+	// db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	
+	// // dbHandle := db
+	// log.Println("Connection:")
+	// //sqlDb,error = db.DB()
+	// log.Println(db.DB())
+	// log.Println("Errors:", err)
+
+	// db.AutoMigrate(Product{})
+
 
 	log.Println("Application started")
 
@@ -200,6 +252,11 @@ func main() {
 	database["001"] = models.Product{ID: "001", Name: "Pisang Goreng", Price: 10.99, Quantity: 10}
 	database["002"] = models.Product{ID: "002", Name: "Teh Botol", Price: 5.99, Quantity: 20}
 
+	// product := mapToORM(database["002"])
+	// db.Create(mapToORM(database["001"]))
+	// db.Create(&product)
+	// db.Commit()
+	//return
 	// http.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 	// 	message := []byte(`{"message": "Server up and running"}`)
 	// 	setJsonResp(message, http.StatusOK, res)
